@@ -25,6 +25,15 @@ const PORT = process.env.PORT || 3000;
 // Ruta absoluta al archivo de datos
 const dataFilePath = path.join(__dirname, 'data', 'frutas.json');
 
+function leerFrutas() {
+  const contenido = fs.readFileSync(dataFilePath, 'utf-8');
+  return JSON.parse(contenido);
+}
+
+function guardarFrutas(frutas) {
+  fs.writeFileSync(dataFilePath, JSON.stringify(frutas, null, 2), 'utf-8');
+}
+
 /**
  * TODO: Implementar un endpoint GET /frutas
  * 1. Debe leer el archivo data/frutas.json utilizando fs.readFileSync o fs.promises.readFile.
@@ -32,7 +41,9 @@ const dataFilePath = path.join(__dirname, 'data', 'frutas.json');
  * 3. Debe retornar el arreglo de frutas con un status 200.
  */
 app.get('/frutas', (req, res) => {
-  // Tu código aquí
+  const frutas = leerFrutas();
+
+  res.status(200).json(frutas);
 });
 
 /**
@@ -44,7 +55,19 @@ app.get('/frutas', (req, res) => {
  * IMPORTANTE: ¡Esta ruta debe ir ANTES que la ruta GET /frutas/:id!
  */
 app.get('/frutas/buscar', (req, res) => {
-  // Tu código aquí
+  const { nombre } = req.query;
+
+  const frutas = leerFrutas();
+
+  if (!nombre) {
+    return res.status(200).json(frutas);
+  }
+
+  const frutasFiltradas = frutas.filter((fruta) =>
+    fruta.nombre.toLowerCase().includes(nombre.toLowerCase()),
+  );
+
+  return res.status(200).json(frutasFiltradas);
 });
 
 /**
@@ -53,11 +76,21 @@ app.get('/frutas/buscar', (req, res) => {
  * 2. Debe leer el archivo data/frutas.json.
  * 3. Debe buscar la fruta que coincida con el id.
  * 4. Si la encuentra, retornarla con status 200.
- * 
+ *
  * 5. Si no la encuentra, retornar un objeto { error: "Fruta no encontrada" } con status 404.
  */
 app.get('/frutas/:id', (req, res) => {
-  // Tu código aquí
+  const id = Number(req.params.id);
+
+  const frutas = leerFrutas();
+
+  const fruta = frutas.find((frutaActual) => frutaActual.id === id);
+
+  if (!fruta) {
+    return res.status(404).json({ error: 'Fruta no encontrada' });
+  }
+
+  return res.status(200).json(fruta);
 });
 
 /**
@@ -70,7 +103,26 @@ app.get('/frutas/:id', (req, res) => {
  * 6. Debe retornar la fruta creada con status 201.
  */
 app.post('/frutas', (req, res) => {
-  // Tu código aquí
+  const frutas = leerFrutas();
+
+  const maxId = frutas.reduce((maximo, fruta) => {
+    if (fruta.id > maximo) {
+      return fruta.id;
+    }
+
+    return maximo;
+  }, 0);
+
+  const nuevaFruta = {
+    id: maxId + 1,
+    ...req.body,
+  };
+
+  frutas.push(nuevaFruta);
+
+  guardarFrutas(frutas);
+
+  return res.status(201).json(nuevaFruta);
 });
 
 // Iniciar el servidor
